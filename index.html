@@ -1,0 +1,617 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>nablur — navegador</title>
+  <meta name="description" content="nablur, un navegador rápido, seguro y minimalista. Bloqueo de anuncios, favoritos y control total de tu privacidad.">
+  <link rel="icon" href="blur/navegador/assets/logo.png" type="image/png">
+  <style>
+    /* ── Reset ────────────────────────────────────────────── */
+    *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+
+    /* ── Tokens ───────────────────────────────────────────── */
+    :root {
+      --bg:       #0a0b0e;
+      --bg-card:  #12141a;
+      --bg-hover: #1a1d26;
+      --txt:      #e7e9ee;
+      --txt-dim:  #6b7280;
+      --border:   #1a1d28;
+      --border-l: #252838;
+      --accent:   #e11d48;
+      --accent-2: #fb7185;
+      --glow:     color-mix(in srgb, var(--accent) 18%, transparent);
+      --glow-lg:  color-mix(in srgb, var(--accent) 6%, transparent);
+      --rust:     #f0803c;
+      --blue:     #60a5fa;
+      --purple:   #c084fc;
+      --green:    #4ade80;
+      --radius:   14px;
+    }
+    @property --accent { syntax: '<color>'; inherits: true; initial-value: #e11d48; }
+    @property --accent-2 { syntax: '<color>'; inherits: true; initial-value: #fb7185; }
+    @keyframes colorCycle {
+      0%,16.6%    { --accent: #e11d48; --accent-2: #fb7185; }
+      16.6%,33.3% { --accent: #dc2626; --accent-2: #f87171; }
+      33.3%,50%   { --accent: #ea580c; --accent-2: #fb923c; }
+      50%,66.6%   { --accent: #16a34a; --accent-2: #4ade80; }
+      66.6%,83.3% { --accent: #2563eb; --accent-2: #60a5fa; }
+      83.3%,100%  { --accent: #7c3aed; --accent-2: #a78bfa; }
+    }
+    :root { animation: colorCycle 21s ease-in-out infinite; }
+
+    /* ── Base ─────────────────────────────────────────────── */
+    html { scroll-behavior: smooth; }
+    body {
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: var(--bg); color: var(--txt);
+      line-height: 1.6; -webkit-font-smoothing: antialiased;
+      overflow-x: hidden;
+    }
+    a { color: var(--accent-2); text-decoration: none; transition: color .2s; }
+    a:hover { color: #fff; }
+    img { display: block; max-width: 100%; }
+
+    /* ── Loader fullscreen ────────────────────────────────── */
+    #loader {
+      position: fixed; inset: 0; z-index: 9999;
+      background: var(--bg);
+      display: flex; flex-direction: column;
+      align-items: center; justify-content: center;
+      transition: opacity .5s ease, visibility .5s ease;
+    }
+    #loader.oculto { opacity: 0; visibility: hidden; pointer-events: none; }
+    .loader-logo { position: relative; width: 80px; height: 80px; margin-bottom: 28px; }
+    .loader-logo img {
+      width: 100%; height: 100%; border-radius: 20px;
+      animation: loaderPulse 1.4s ease-in-out infinite;
+    }
+    .loader-ring {
+      position: absolute; inset: -10px; border-radius: 26px;
+      border: 2px solid transparent;
+      border-top-color: var(--accent);
+      border-right-color: var(--accent-2);
+      animation: loaderSpin .9s linear infinite;
+    }
+    @keyframes loaderSpin { to { transform: rotate(360deg); } }
+    @keyframes loaderPulse {
+      0%,100% { transform: scale(1); filter: drop-shadow(0 0 20px var(--glow)); }
+      50% { transform: scale(1.06); filter: drop-shadow(0 0 40px var(--glow)); }
+    }
+    .loader-text {
+      font-size: 13px; font-weight: 500; letter-spacing: .8px;
+      text-transform: uppercase; color: var(--txt-dim);
+      animation: loaderFade 1.4s ease-in-out infinite;
+    }
+    @keyframes loaderFade { 0%,100% { opacity:.4; } 50% { opacity:1; } }
+
+    /* ── SVG gooey filter (oculto) ────────────────────────── */
+    .svg-filters { position: absolute; width: 0; height: 0; }
+
+    /* ── Navbar glass morphism con parallax ───────────────── */
+    .navbar-wrap {
+      position: fixed; top: 0; left: 0; right: 0; z-index: 100;
+      padding: 16px 32px;
+      transition: background .35s, padding .35s, box-shadow .35s;
+    }
+    .navbar-wrap.scrolled {
+      background: rgba(10,11,14,.85);
+      backdrop-filter: blur(24px) saturate(1.5); -webkit-backdrop-filter: blur(24px) saturate(1.5);
+      padding: 10px 32px;
+      box-shadow: 0 1px 0 rgba(255,255,255,.04), 0 8px 32px rgba(0,0,0,.3);
+    }
+    .navbar {
+      max-width: 1100px; margin: 0 auto;
+      display: flex; align-items: center; justify-content: space-between;
+    }
+    .navbar-left { display: flex; align-items: center; gap: 12px; cursor: pointer; }
+    .navbar-logo img { height: 32px; width: 32px; border-radius: 8px; }
+    .navbar-brand { font-weight: 700; font-size: 16px; color: var(--txt); letter-spacing: -.3px; }
+    .navbar-center {
+      display: flex; align-items: center; gap: 4px;
+      padding: 4px; border-radius: 999px;
+      background: rgba(255,255,255,.03);
+      border: 1px solid rgba(255,255,255,.04);
+    }
+    .navbar-center a {
+      padding: 7px 18px; border-radius: 999px;
+      font-size: 13px; font-weight: 500;
+      color: var(--txt-dim);
+      transition: background .2s, color .2s;
+      position: relative;
+    }
+    .navbar-center a:hover { background: rgba(255,255,255,.06); color: var(--txt); }
+    .navbar-center a.active { background: color-mix(in srgb, var(--accent) 10%, transparent); color: var(--accent-2); }
+    .navbar-cta {
+      padding: 9px 22px; border-radius: 999px;
+      font-size: 13px; font-weight: 600;
+      background: var(--accent); color: #fff;
+      transition: all .2s;
+      box-shadow: 0 2px 16px var(--glow);
+    }
+    .navbar-cta:hover { background: #be123c; color: #fff; transform: translateY(-1px); box-shadow: 0 4px 24px var(--glow); }
+
+    /* ── Hero con gooey blobs ─────────────────────────────── */
+    .hero {
+      position: relative; min-height: 100vh;
+      display: flex; align-items: center; justify-content: center;
+      text-align: center; padding: 140px 24px 80px;
+      overflow: hidden;
+      /* Fondo identical al inicio de nablur */
+      background:
+        radial-gradient(1000px 500px at 50% -6%, color-mix(in srgb, var(--accent) 14%, transparent), transparent 70%),
+        radial-gradient(600px 400px at 20% 60%, color-mix(in srgb, var(--accent) 4%, transparent), transparent 60%),
+        radial-gradient(500px 350px at 80% 40%, color-mix(in srgb, var(--accent) 4%, transparent), transparent 60%),
+        var(--bg);
+    }
+    /* Orbe principal con gooey — réplica del orbe de nablur */
+    .gooey-scene {
+      position: absolute; inset: 0;
+      filter: url(#gooey);
+      pointer-events: none;
+    }
+    .blob {
+      position: absolute; border-radius: 50%;
+    }
+    /* Núcleo principal — grande, centrado arriba */
+    .blob-1 {
+      width: 220px; height: 220px;
+      top: 12%; left: 50%; transform: translateX(-50%);
+      background: radial-gradient(circle at 34% 30%, color-mix(in srgb, var(--accent) 50%, #000), var(--accent));
+      box-shadow: 0 22px 60px color-mix(in srgb, var(--accent) 35%, transparent);
+      animation: nucleoPulso 6s ease-in-out infinite;
+    }
+    /* Gotas orbitando */
+    .blob-2 {
+      width: 28px; height: 28px;
+      top: 32%; left: 38%;
+      background: radial-gradient(circle at 32% 28%, color-mix(in srgb, var(--accent) 60%, #000), var(--accent));
+      animation: gotaA 7s ease-in-out infinite;
+    }
+    .blob-3 {
+      width: 20px; height: 20px;
+      top: 44%; right: 30%;
+      background: radial-gradient(circle at 32% 28%, color-mix(in srgb, var(--accent) 45%, #000), var(--accent));
+      animation: gotaA 7.5s ease-in-out infinite reverse;
+    }
+    .blob-4 {
+      width: 16px; height: 16px;
+      top: 55%; left: 28%;
+      background: radial-gradient(circle at 32% 28%, color-mix(in srgb, var(--accent) 35%, #000), var(--accent));
+      animation: gotaB 8.5s ease-in-out infinite;
+    }
+    .blob-5 {
+      width: 22px; height: 22px;
+      top: 28%; right: 22%;
+      background: radial-gradient(circle at 32% 28%, color-mix(in srgb, var(--accent) 40%, #000), var(--accent));
+      animation: gotaB 9s ease-in-out infinite reverse;
+    }
+    /* Partículas adicionales */
+    .blob-6 {
+      width: 12px; height: 12px;
+      top: 38%; left: 25%;
+      background: radial-gradient(circle at 32% 28%, color-mix(in srgb, var(--accent) 55%, #000), var(--accent));
+      animation: gotaC 6.5s ease-in-out infinite;
+    }
+    .blob-7 {
+      width: 32px; height: 32px;
+      top: 60%; left: 55%;
+      background: radial-gradient(circle at 32% 28%, color-mix(in srgb, var(--accent) 30%, #000), var(--accent));
+      animation: gotaD 9.5s ease-in-out infinite;
+    }
+    .blob-8 {
+      width: 10px; height: 10px;
+      top: 20%; left: 42%;
+      background: radial-gradient(circle at 32% 28%, color-mix(in srgb, var(--accent) 65%, #000), var(--accent));
+      animation: gotaA 5.5s ease-in-out infinite reverse;
+    }
+    .blob-9 {
+      width: 18px; height: 18px;
+      top: 50%; left: 68%;
+      background: radial-gradient(circle at 32% 28%, color-mix(in srgb, var(--accent) 38%, #000), var(--accent));
+      animation: gotaC 8s ease-in-out infinite reverse;
+    }
+    .blob-10 {
+      width: 14px; height: 14px;
+      top: 35%; right: 18%;
+      background: radial-gradient(circle at 32% 28%, color-mix(in srgb, var(--accent) 50%, #000), var(--accent));
+      animation: gotaD 7s ease-in-out infinite reverse;
+    }
+    @keyframes nucleoPulso {
+      0%,100% { transform: translateX(-50%) scale(1); }
+      50% { transform: translateX(-50%) scale(1.06); }
+    }
+    @keyframes gotaA {
+      0%,100% { transform: translate(0,0) scale(1); }
+      25% { transform: translate(30px,-20px) scale(1.15); }
+      50% { transform: translate(60px,10px) scale(.9); }
+      75% { transform: translate(20px,25px) scale(1.05); }
+    }
+    @keyframes gotaB {
+      0%,100% { transform: translate(0,0) scale(1); }
+      33% { transform: translate(-25px,15px) scale(1.2); }
+      66% { transform: translate(15px,-20px) scale(.85); }
+    }
+    @keyframes gotaC {
+      0%,100% { transform: translate(0,0) scale(1); }
+      20% { transform: translate(-18px,-28px) scale(1.1); }
+      40% { transform: translate(22px,-12px) scale(.85); }
+      60% { transform: translate(35px,18px) scale(1.15); }
+      80% { transform: translate(-10px,22px) scale(.9); }
+    }
+    @keyframes gotaD {
+      0%,100% { transform: translate(0,0) scale(1); }
+      25% { transform: translate(40px,-15px) scale(1.2); }
+      50% { transform: translate(15px,30px) scale(.8); }
+      75% { transform: translate(-30px,10px) scale(1.1); }
+    }
+
+    .hero-inner { position: relative; z-index: 2; max-width: 680px; }
+    .hero-badge {
+      display: inline-flex; align-items: center; gap: 6px;
+      padding: 6px 16px; margin-bottom: 32px;
+      font-size: 11px; font-weight: 600; letter-spacing: .6px;
+      text-transform: uppercase;
+      color: var(--accent-2);
+      background: color-mix(in srgb, var(--accent) 8%, transparent);
+      border: 1px solid color-mix(in srgb, var(--accent) 12%, transparent);
+      border-radius: 999px;
+    }
+    .hero-badge::before { content: ''; width: 6px; height: 6px; border-radius: 50%; background: var(--accent); box-shadow: 0 0 8px var(--accent); }
+    .hero h1 {
+      font-size: clamp(34px, 6vw, 64px);
+      font-weight: 800; letter-spacing: -1.5px; line-height: 1.08;
+      margin-bottom: 18px;
+      background: linear-gradient(135deg, #fff 20%, var(--accent-2));
+      -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+    .hero p {
+      font-size: clamp(15px, 1.8vw, 18px);
+      color: var(--txt-dim); max-width: 460px;
+      margin: 0 auto 36px; line-height: 1.7;
+    }
+    .hero-cta { display: flex; gap: 12px; justify-content: center; flex-wrap: wrap; }
+    .btn {
+      display: inline-flex; align-items: center; gap: 8px;
+      padding: 13px 28px; border-radius: 999px;
+      font-size: 14px; font-weight: 600;
+      border: none; cursor: pointer; transition: all .2s;
+    }
+    .btn-principal { background: var(--accent); color: #fff; box-shadow: 0 4px 24px var(--glow); }
+    .btn-principal:hover { background: #be123c; transform: translateY(-2px); box-shadow: 0 8px 32px var(--glow); color: #fff; }
+    .btn-secundario { background: rgba(255,255,255,.04); color: var(--txt); border: 1px solid var(--border-l); }
+    .btn-secundario:hover { background: rgba(255,255,255,.08); transform: translateY(-2px); color: var(--txt); }
+
+    /* ── Separador ────────────────────────────────────────── */
+    .sep { width: 50px; height: 2px; margin: 0 auto; background: linear-gradient(90deg, transparent, var(--accent), transparent); border-radius: 1px; }
+
+    /* ── Secciones ────────────────────────────────────────── */
+    section { padding: 100px 24px; position: relative; }
+    .sec-title { text-align: center; margin-bottom: 52px; }
+    .sec-title h2 { font-size: clamp(24px, 3.5vw, 36px); font-weight: 700; letter-spacing: -.8px; margin-bottom: 10px; }
+    .sec-title p { color: var(--txt-dim); max-width: 420px; margin: 0 auto; font-size: 15px; }
+
+    /* ── Features grid ────────────────────────────────────── */
+    .f-grid {
+      display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+      gap: 14px; max-width: 940px; margin: 0 auto;
+    }
+    .f-card {
+      background: var(--bg-card); border: 1px solid var(--border);
+      border-radius: var(--radius); padding: 26px 22px;
+      transition: border-color .25s, box-shadow .3s, transform .25s;
+    }
+    .f-card:hover {
+      border-color: color-mix(in srgb, var(--accent) 20%, transparent);
+      box-shadow: 0 8px 40px var(--glow-lg);
+      transform: translateY(-3px);
+    }
+    .f-icon {
+      width: 38px; height: 38px; display: flex; align-items: center; justify-content: center;
+      border-radius: 10px; background: color-mix(in srgb, var(--accent) 7%, transparent); color: var(--accent); margin-bottom: 14px;
+    }
+    .f-card h3 { font-size: 15px; font-weight: 600; margin-bottom: 5px; }
+    .f-card p { font-size: 13px; color: var(--txt-dim); line-height: 1.6; }
+
+    /* ── Stack — cómo fue hecho (compacto) ────────────────── */
+    .stack-wrap { max-width: 700px; margin: 0 auto; }
+    .stack-row { display: flex; gap: 14px; flex-wrap: wrap; justify-content: center; }
+    .s-chip {
+      display: flex; align-items: center; gap: 8px;
+      padding: 10px 18px; border-radius: 12px;
+      background: var(--bg-card); border: 1px solid var(--border);
+      font-size: 13px; font-weight: 500; color: var(--txt-dim);
+      transition: border-color .2s, transform .2s;
+    }
+    .s-chip:hover { border-color: rgba(225,29,72,.2); transform: translateY(-2px); }
+    .s-chip .dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+    .s-chip .dot.rust { background: var(--rust); box-shadow: 0 0 8px rgba(240,128,60,.3); }
+    .s-chip .dot.web  { background: var(--blue); box-shadow: 0 0 8px rgba(96,165,250,.3); }
+    .s-chip .dot.ui   { background: var(--purple); box-shadow: 0 0 8px rgba(192,132,252,.3); }
+    .s-chip .dot.arch { background: var(--green); box-shadow: 0 0 8px rgba(74,222,128,.3); }
+    .s-chip strong { color: var(--txt); }
+    .stack-desc {
+      margin-top: 20px; padding: 28px 30px;
+      background: linear-gradient(135deg, color-mix(in srgb, var(--accent) 4%, transparent), color-mix(in srgb, var(--accent) 3%, transparent));
+      border: 1px solid color-mix(in srgb, var(--accent) 10%, transparent);
+      border-radius: 16px;
+      font-size: 13px; color: var(--txt-dim); line-height: 1.75;
+      text-align: center;
+      position: relative; overflow: hidden;
+    }
+    .stack-desc::before {
+      content: '';
+      position: absolute; top: -1px; left: 20%; right: 20%; height: 1px;
+      background: linear-gradient(90deg, transparent, color-mix(in srgb, var(--accent) 30%, transparent), transparent);
+    }
+    .stack-desc strong { color: var(--accent-2); font-weight: 600; }
+
+    /* ── Specs ────────────────────────────────────────────── */
+    .specs {
+      max-width: 760px; margin: 0 auto;
+      display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; text-align: center;
+    }
+    .spec-item {
+      padding: 28px 14px; border-radius: var(--radius);
+      background: var(--bg-card); border: 1px solid var(--border);
+      position: relative; overflow: hidden;
+    }
+    .spec-item::before {
+      content: ''; position: absolute; inset: 0;
+      background: radial-gradient(circle at 50% 0%, color-mix(in srgb, var(--accent) 6%, transparent), transparent 70%);
+      pointer-events: none;
+    }
+    .spec-item h3 {
+      font-size: clamp(28px, 4vw, 42px); font-weight: 800; letter-spacing: -1px;
+      background: linear-gradient(135deg, #fff, var(--accent-2));
+      -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
+      margin-bottom: 4px; position: relative;
+    }
+    .spec-item p { font-size: 13px; color: var(--txt-dim); position: relative; }
+
+    /* ── CTA ──────────────────────────────────────────────── */
+    .cta-final { text-align: center; padding: 100px 24px 80px; position: relative; }
+    .cta-glow {
+      position: absolute; width: 500px; height: 500px;
+      top: 50%; left: 50%; transform: translate(-50%,-50%);
+      background: radial-gradient(circle, color-mix(in srgb, var(--accent) 7%, transparent), transparent 70%);
+      pointer-events: none; filter: blur(60px);
+    }
+    .cta-final h2 { font-size: clamp(24px,3.5vw,38px); font-weight:700; letter-spacing:-.8px; margin-bottom:14px; position:relative; z-index:1; }
+    .cta-final p { color:var(--txt-dim); margin-bottom:28px; font-size:15px; position:relative; z-index:1; }
+    .cta-final .btn { position:relative; z-index:1; }
+
+    /* ── Footer ───────────────────────────────────────────── */
+    .footer {
+      padding: 22px 24px; border-top: 1px solid var(--border);
+      text-align: center; font-size: 13px; color: var(--txt-dim);
+    }
+    .footer a { color: var(--txt-dim); transition: color .2s; }
+    .footer a:hover { color: var(--accent-2); }
+    .footer .autor { margin-top: 3px; font-size: 12px; color: #3d4256; }
+
+    /* ── Scroll reveal ────────────────────────────────────── */
+    .reveal {
+      opacity: 0; transform: translateY(24px);
+      transition: opacity .6s cubic-bezier(.16,1,.3,1), transform .6s cubic-bezier(.16,1,.3,1);
+    }
+    .reveal.vis { opacity: 1; transform: translateY(0); }
+    .reveal-delay-1 { transition-delay: .08s; }
+    .reveal-delay-2 { transition-delay: .16s; }
+    .reveal-delay-3 { transition-delay: .24s; }
+
+    /* ── Responsive ───────────────────────────────────────── */
+    @media (max-width: 700px) {
+      .navbar-wrap { padding: 12px 16px; }
+      .navbar-wrap.scrolled { padding: 8px 16px; }
+      .navbar-center { display: none; }
+      .specs { grid-template-columns: 1fr; gap: 10px; }
+      .f-grid { grid-template-columns: 1fr; }
+      .stack-row { flex-direction: column; align-items: stretch; }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- SVG gooey filter -->
+  <svg class="svg-filters">
+    <defs>
+      <filter id="gooey">
+        <feGaussianBlur in="SourceGraphic" stdDeviation="12" result="blur"/>
+        <feColorMatrix in="blur" mode="matrix"
+          values="1 0 0 0 0  0 1 0 0 0  0 0 1 0 0  0 0 0 22 -9" result="goo"/>
+        <feComposite in="SourceGraphic" in2="goo" operator="atop"/>
+      </filter>
+    </defs>
+  </svg>
+
+  <!-- Loader -->
+  <div id="loader">
+    <div class="loader-logo">
+      <div class="loader-ring"></div>
+      <img src="blur/navegador/assets/logo.png" alt="nablur">
+    </div>
+    <div class="loader-text">cargando</div>
+  </div>
+
+  <!-- Navbar -->
+  <div class="navbar-wrap" id="navbar">
+    <nav class="navbar">
+      <div class="navbar-left" onclick="window.scrollTo({top:0,behavior:'smooth'})">
+        <img src="blur/navegador/assets/logo.png" alt="nablur" style="height:32px;width:32px;border-radius:8px;">
+        <span class="navbar-brand">nablur</span>
+      </div>
+      <div class="navbar-center">
+        <a href="#features" data-nav>Características</a>
+        <a href="#hecho" data-nav>Cómo se hizo</a>
+        <a href="#numeros" data-nav>Números</a>
+      </div>
+      <a href="#descargar" class="navbar-cta">Descargar</a>
+    </nav>
+  </div>
+
+  <!-- Hero -->
+  <section class="hero" id="hero">
+    <div class="gooey-scene">
+      <div class="blob blob-1"></div>
+      <div class="blob blob-2"></div>
+      <div class="blob blob-3"></div>
+      <div class="blob blob-4"></div>
+      <div class="blob blob-5"></div>
+      <div class="blob blob-6"></div>
+      <div class="blob blob-7"></div>
+      <div class="blob blob-8"></div>
+      <div class="blob blob-9"></div>
+      <div class="blob blob-10"></div>
+    </div>
+    <div class="hero-inner">
+      <div class="hero-badge reveal">versión 1.0</div>
+      <h1 class="reveal reveal-delay-1">Lo que un navegador<br>debería ser.</h1>
+      <p class="reveal reveal-delay-2">nablur existe para que dejes de luchar contra tu navegador y empieces a usarlo. Rápido, seguro y sin estorbos.</p>
+      <div class="hero-cta reveal reveal-delay-3">
+        <a href="#descargar" class="btn btn-principal">
+          <svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M8 2v9M4.5 7.5L8 11l3.5-3.5M3 13h10"/></svg>
+          Descargar
+        </a>
+        <a href="#features" class="btn btn-secundario">Ver características</a>
+      </div>
+    </div>
+  </section>
+
+  <!-- Features -->
+  <section id="features">
+    <div class="sep reveal" style="margin-bottom:56px;"></div>
+    <div class="sec-title reveal">
+      <h2>Diseñado para importar</h2>
+      <p>Cada función existe porque resuelve algo real. Nada sobra.</p>
+    </div>
+    <div class="f-grid">
+      <div class="f-card reveal">
+        <div class="f-icon"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg></div>
+        <h3>Bloqueo de anuncios</h3>
+        <p>Filtro integrado de rastreadores y anuncios. Tres niveles: básico, medio y estricto.</p>
+      </div>
+      <div class="f-card reveal reveal-delay-1">
+        <div class="f-icon"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M9 3v18"/></svg></div>
+        <h3>Grupos de pestañas</h3>
+        <p>Organiza, colapsa y colorea tus pestañas. Trabaja con múltiples proyectos sin perderte.</p>
+      </div>
+      <div class="f-card reveal reveal-delay-2">
+        <div class="f-icon"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/></svg></div>
+        <h3>Motores de búsqueda</h3>
+        <p>Cambia entre DuckDuckGo, Bing, Google y Ecosia con un solo clic.</p>
+      </div>
+      <div class="f-card reveal">
+        <div class="f-icon"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg></div>
+        <h3>Modo privado</h3>
+        <p>Navegación sin rastro. Las pestañas privadas se borran automáticamente al cerrarlas.</p>
+      </div>
+      <div class="f-card reveal reveal-delay-1">
+        <div class="f-icon"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 2a10 10 0 1 0 10 10H12V2z"/><path d="M20.66 7A10 10 0 0 0 14 2v6h6.66z" fill="currentColor" opacity=".2"/></svg></div>
+        <h3>Temas personalizables</h3>
+        <p>Modo claro y oscuro con color de acento ajustable. La interfaz se adapta a ti.</p>
+      </div>
+      <div class="f-card reveal reveal-delay-2">
+        <div class="f-icon"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg></div>
+        <h3>Rendimiento nativo</h3>
+        <p>Construido en Rust con WebView2. Arranque rápido, consumo mínimo de memoria.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- Cómo fue hecho -->
+  <section id="hecho">
+    <div class="sep reveal" style="margin-bottom:56px;"></div>
+    <div class="sec-title reveal">
+      <h2>Cómo fue hecho</h2>
+      <p>Decisiones técnicas que hacen la diferencia.</p>
+    </div>
+    <div class="stack-wrap">
+      <div class="stack-row reveal">
+        <div class="s-chip"><span class="dot rust"></span><strong>Rust</strong> — lógica, IPC, persistencia</div>
+        <div class="s-chip"><span class="dot web"></span><strong>Chromium</strong> — motor de renderizado via WebView2</div>
+        <div class="s-chip"><span class="dot ui"></span><strong>HTML/CSS/JS</strong> — interfaz incrustada en el binario</div>
+        <div class="s-chip"><span class="dot arch"></span><strong>Factory + Repository</strong> — arquitectura por capas</div>
+      </div>
+      <div class="stack-desc reveal">
+        nablur combina <strong>Rust</strong> (seguridad de memoria, sin GC) con <strong>WebView2</strong> (compatibilidad completa de Chromium). La interfaz es HTML/CSS puro — sin frameworks, sin npm, sin dependencias innecesarias. El resultado: un binario pequeño que arranca en menos de 2 segundos.
+      </div>
+    </div>
+  </section>
+
+  <!-- Números -->
+  <section id="numeros">
+    <div class="sep reveal" style="margin-bottom:56px;"></div>
+    <div class="sec-title reveal">
+      <h2>En números</h2>
+      <p>El resultado de hacer las cosas con intención.</p>
+    </div>
+    <div class="specs reveal">
+      <div class="spec-item"><h3>&lt;2s</h3><p>Tiempo de arranque</p></div>
+      <div class="spec-item"><h3>Zero</h3><p>Dependencias innecesarias</p></div>
+      <div class="spec-item"><h3>100%</h3><p>Código abierto</p></div>
+    </div>
+  </section>
+
+  <!-- CTA -->
+  <section id="descargar" class="cta-final reveal">
+    <div class="cta-glow"></div>
+    <h2>Empieza a navegar.</h2>
+    <p>Descarga nablur y descubre lo que se siente un navegador que no te estorba.</p>
+    <a href="#" class="btn btn-principal" style="font-size:15px;padding:14px 34px;">
+      <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M8 2v9M4.5 7.5L8 11l3.5-3.5M3 13h10"/></svg>
+      Descargar nablur
+    </a>
+  </section>
+
+  <!-- Footer -->
+  <footer class="footer">
+    <p>&copy; 2026 nablur</p>
+    <p class="autor">Hecho por <a href="https://github.com/DerekBRojGar" target="_blank" rel="noopener">Derek B RojGar</a></p>
+  </footer>
+
+  <script>
+    /* ── Loader ───────────────────────────────────────────── */
+    window.addEventListener('load', () => {
+      setTimeout(() => document.getElementById('loader').classList.add('oculto'), 800);
+    });
+
+    /* ── Navbar scroll + active state ─────────────────────── */
+    const nav = document.getElementById('navbar');
+    const sections = document.querySelectorAll('section[id]');
+    const navLinks = document.querySelectorAll('[data-nav]');
+
+    function updateNav() {
+      nav.classList.toggle('scrolled', window.scrollY > 60);
+      let current = '';
+      sections.forEach(s => {
+        if (window.scrollY >= s.offsetTop - 200) current = s.id;
+      });
+      navLinks.forEach(a => {
+        a.classList.toggle('active', a.getAttribute('href') === '#' + current);
+      });
+    }
+    window.addEventListener('scroll', updateNav, { passive: true });
+    updateNav();
+
+    /* ── Parallax blobs con scroll ────────────────────────── */
+    const blobs = document.querySelectorAll('.blob');
+    window.addEventListener('scroll', () => {
+      const y = window.scrollY;
+      blobs.forEach((b, i) => {
+        const speed = .02 + i * .008;
+        b.style.transform += ` translateY(${y * speed}px)`;
+      });
+    }, { passive: true });
+
+    /* ── Scroll reveal ────────────────────────────────────── */
+    const revealObs = new IntersectionObserver((entries) => {
+      entries.forEach(e => { if (e.isIntersecting) { e.target.classList.add('vis'); revealObs.unobserve(e.target); } });
+    }, { threshold: 0.1 });
+    document.querySelectorAll('.reveal').forEach(el => revealObs.observe(el));
+  </script>
+
+</body>
+</html>
