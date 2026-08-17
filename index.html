@@ -403,13 +403,42 @@
     .reveal-delay-3 { transition-delay: .24s; }
 
     /* ── Responsive ───────────────────────────────────────── */
-    @media (max-width: 700px) {
-      .navbar-wrap { padding: 12px 16px; }
-      .navbar-wrap.scrolled { padding: 8px 16px; }
+    @media (max-width: 900px) {
+      .navbar-wrap { padding: 12px 20px; }
+      .navbar-wrap.scrolled { padding: 8px 20px; }
+      .navbar-center a { padding: 7px 12px; font-size: 12px; }
+      .hero { padding: 130px 20px 60px; }
+      .blob-1 { width: 180px; height: 180px; }
+      section { padding: 80px 20px; }
+      .cta-final { padding: 80px 20px 60px; }
+      .f-grid { grid-template-columns: repeat(2, 1fr); }
+    }
+    @media (max-width: 600px) {
+      .navbar-wrap { padding: 10px 16px; }
+      .navbar-wrap.scrolled { padding: 6px 16px; }
       .navbar-center { display: none; }
-      .specs { grid-template-columns: 1fr; gap: 10px; }
-      .f-grid { grid-template-columns: 1fr; }
+      .hero { padding: 120px 16px 50px; min-height: auto; }
+      .hero h1 { font-size: clamp(28px, 8vw, 40px); }
+      .hero h1 br { display: none; }
+      .hero p { font-size: 14px; padding: 0 8px; }
+      .hero-cta { flex-direction: column; align-items: center; gap: 10px; }
+      .hero-cta .btn { width: 100%; max-width: 260px; justify-content: center; }
+      .blob-1 { width: 140px; height: 140px; top: 8%; }
+      .blob-2, .blob-5, .blob-8, .blob-10 { display: none; }
+      section { padding: 60px 16px; }
+      .sec-title { margin-bottom: 36px; }
+      .sec-title h2 { font-size: 22px; }
+      .sec-title p { font-size: 14px; }
+      .f-grid { grid-template-columns: 1fr; gap: 10px; }
+      .f-card { padding: 20px 18px; }
       .stack-row { flex-direction: column; align-items: stretch; }
+      .s-chip { justify-content: center; font-size: 12px; padding: 10px 14px; }
+      .stack-desc { padding: 20px 18px; font-size: 12px; }
+      .specs { grid-template-columns: 1fr; gap: 10px; }
+      .spec-item { padding: 22px 14px; }
+      .cta-final { padding: 60px 16px 50px; }
+      .cta-glow { width: 300px; height: 300px; }
+      .footer { padding: 18px 16px; }
     }
   </style>
 </head>
@@ -468,7 +497,7 @@
     </div>
     <div class="hero-inner">
       <div class="hero-badge reveal">versión 1.0</div>
-      <h1 class="reveal reveal-delay-1">Lo que un navegador<br>debería ser.</h1>
+      <h1 class="reveal reveal-delay-1">Lo que un navegador <br>debería ser.</h1>
       <p class="reveal reveal-delay-2">nablur existe para que dejes de luchar contra tu navegador y empieces a usarlo. Rápido, seguro y sin estorbos.</p>
       <div class="hero-cta reveal reveal-delay-3">
         <a href="#descargar" class="btn btn-principal">
