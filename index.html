@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>nablur — navegador</title>
+  <title>nablur</title>
   <meta name="description" content="nablur, un navegador rápido, seguro y minimalista. Bloqueo de anuncios, favoritos y control total de tu privacidad.">
   <link rel="icon" href="assets/logo.png" type="image/png">
   <style>
@@ -348,6 +348,59 @@
     }
     .stack-desc strong { color: var(--accent-2); font-weight: 600; }
 
+    /* ── Roadmap ──────────────────────────────────────────── */
+    .roadmap-grid {
+      display: grid; grid-template-columns: repeat(3, 1fr);
+      gap: 14px; max-width: 940px; margin: 0 auto;
+    }
+    .rm-card {
+      background: var(--bg-card); border: 1px solid var(--border);
+      border-radius: var(--radius); padding: 26px 22px;
+      transition: border-color .25s, box-shadow .3s, transform .25s;
+      position: relative; overflow: hidden;
+    }
+    .rm-card::before {
+      content: ''; position: absolute; inset: 0;
+      background: radial-gradient(circle at 50% 0%, color-mix(in srgb, var(--accent) 5%, transparent), transparent 70%);
+      pointer-events: none;
+    }
+    .rm-card:hover {
+      border-color: color-mix(in srgb, var(--accent) 20%, transparent);
+      box-shadow: 0 8px 40px var(--glow-lg);
+      transform: translateY(-3px);
+    }
+    .rm-badge {
+      display: inline-flex; padding: 4px 12px; border-radius: 999px;
+      font-size: 10px; font-weight: 600; letter-spacing: .5px;
+      text-transform: uppercase; margin-bottom: 14px;
+      background: color-mix(in srgb, var(--accent) 10%, transparent);
+      color: var(--accent-2);
+      border: 1px solid color-mix(in srgb, var(--accent) 14%, transparent);
+      position: relative;
+    }
+    .rm-version {
+      font-size: 22px; font-weight: 800; letter-spacing: -.5px;
+      margin-bottom: 6px; position: relative;
+      background: linear-gradient(135deg, #fff 30%, var(--accent-2));
+      -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
+    }
+    .rm-features {
+      list-style: none; margin: 14px 0; position: relative;
+    }
+    .rm-features li {
+      padding: 5px 0; font-size: 13px; color: var(--txt);
+      display: flex; align-items: center; gap: 8px;
+    }
+    .rm-features li::before {
+      content: ''; width: 5px; height: 5px; border-radius: 50%;
+      background: var(--accent); flex-shrink: 0;
+      box-shadow: 0 0 6px var(--glow);
+    }
+    .rm-desc {
+      font-size: 12px; color: var(--txt-dim); line-height: 1.6;
+      margin-top: 12px; position: relative;
+    }
+
     /* ── Specs ────────────────────────────────────────────── */
     .specs {
       max-width: 760px; margin: 0 auto;
@@ -431,6 +484,7 @@
       .sec-title p { font-size: 14px; }
       .f-grid { grid-template-columns: 1fr; gap: 10px; }
       .f-card { padding: 20px 18px; }
+      .roadmap-grid { grid-template-columns: 1fr; gap: 10px; }
       .stack-row { flex-direction: column; align-items: stretch; }
       .s-chip { justify-content: center; font-size: 12px; padding: 10px 14px; }
       .stack-desc { padding: 20px 18px; font-size: 12px; }
@@ -581,6 +635,47 @@
       <div class="spec-item"><h3>&lt;2s</h3><p>Tiempo de arranque</p></div>
       <div class="spec-item"><h3>Zero</h3><p>Dependencias innecesarias</p></div>
       <div class="spec-item"><h3>100%</h3><p>Código abierto</p></div>
+    </div>
+  </section>
+
+  <!-- Roadmap -->
+  <section id="roadmap">
+    <div class="sep reveal" style="margin-bottom:56px;"></div>
+    <div class="sec-title reveal">
+      <h2>Lo que viene.</h2>
+      <p>El navegador no para de crecer.</p>
+    </div>
+    <div class="roadmap-grid">
+      <div class="rm-card reveal">
+        <div class="rm-badge">Próximamente</div>
+        <div class="rm-version">v1.1</div>
+        <ul class="rm-features">
+          <li>Espacios Temporales</li>
+          <li>Modo Enfoque</li>
+          <li>Privacidad Entendible</li>
+        </ul>
+        <p class="rm-desc">Sesiones con auto-expiry. Solo contenido. Bloqueos clasificados por tipo.</p>
+      </div>
+      <div class="rm-card reveal reveal-delay-1">
+        <div class="rm-badge">Próximamente</div>
+        <div class="rm-version">v1.2</div>
+        <ul class="rm-features">
+          <li>Quick Space (Ctrl+Space)</li>
+          <li>Tab Search (Ctrl+Shift+P)</li>
+          <li>Historial como Timeline</li>
+        </ul>
+        <p class="rm-desc">Todo a una tecla de distancia. Búsqueda difusa. Historial visual por sesión.</p>
+      </div>
+      <div class="rm-card reveal reveal-delay-2">
+        <div class="rm-badge">Futuro</div>
+        <div class="rm-version">v2.0</div>
+        <ul class="rm-features">
+          <li>Tab Suspension</li>
+          <li>Indicador de Recursos</li>
+          <li>Espacios Permanentes</li>
+        </ul>
+        <p class="rm-desc">Pestañas que se duermen. CPU y RAM por pestaña. Sesiones que persisten.</p>
+      </div>
     </div>
   </section>
 
